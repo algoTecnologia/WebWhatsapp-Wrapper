@@ -14,9 +14,11 @@ services:
      build: .
      environment:
        - SELENIUM=http://firefox:4444/wd/hub
+     ports:
+       - "127.0.0.1:5000:5000"
      volumes:
        - ".:/app"
-     command: python sample/remote.py
+     command: python run.py runserver
      networks:
        - selenium
      depends_on:
