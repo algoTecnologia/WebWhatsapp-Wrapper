@@ -11,9 +11,8 @@ from sqlalchemy.ext.declarative import declarative_base
 import sqlalchemy as db
 
 
-
-
-db_uri = "postgresql://postgres:123@postgres_docker:5432/chatbot"
+db_uri = os.environ['DB_URI']
+print('BANCO DE DADOS: ' + db_uri)
 
 base = declarative_base()
 engine = db.create_engine(db_uri)
@@ -35,9 +34,9 @@ class Contato(base):
 
 
 contato_id = os.environ['CONTATO_ID']
-print('ID UTILIZADO: ' + contato_id)
+print('CONTATO_ID UTILIZADO: ' + contato_id)
 contato_telefone = os.environ['CONTATO_TELEFONE']
-print('Telefone UTILIZADO: ' + contato_telefone)
+print('CONTATO.TELEFONE UTILIZADO: ' + contato_telefone)
 
 
 contato = session.query(Contato).get(contato_id)
