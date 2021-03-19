@@ -5,15 +5,33 @@ import time
 from pprint import pprint
 from webwhatsapi import WhatsAPIDriver
 
-
+import requests
 from sqlalchemy import orm
 from sqlalchemy.ext.declarative import declarative_base
 import sqlalchemy as db
+import json
 
+
+
+header ={
+    "Accept": "application/json",
+    "Content-Type": "application/json",
+}
+
+payload = {'key1': 'value1', 'key2': 'value2'}
+res = requests.post(os.environ["URL_LOG"]+ "?name=2", data=json.dumps({"url":os.environ["URL_LOG"]}),headers=header)
+res1 = requests.post(os.environ["URL_EXTRACT"], data=json.dumps({"url":os.environ["URL_EXTRACT"]}),headers=header)
+res2 = requests.post(os.environ["URL_REQUEST_QR_CODE"], data=json.dumps({"url":os.environ["URL_REQUEST_QR_CODE"]}),headers=header)
+res3 = requests.post(os.environ["URL_REQUEST_REFRESH_TOKEN"], data=json.dumps({"url":os.environ["URL_REQUEST_REFRESH_TOKEN"]}),headers=header)
+
+print("fez todas As RES")
 
 db_uri = os.environ['DB_URI']
 print('BANCO DE DADOS: ' + db_uri)
 
+
+
+'''
 base = declarative_base()
 engine = db.create_engine(db_uri)
 base.metadata.bind = engine
@@ -39,6 +57,9 @@ contato_telefone = os.environ['CONTATO_TELEFONE']
 print('CONTATO.TELEFONE UTILIZADO: ' + contato_telefone)
 
 
+
+
+
 contato = session.query(Contato).get(contato_id)
 
 if contato is None:
@@ -47,7 +68,7 @@ if contato is None:
 
 
 
-
+'''
 ## API ROUTINE
 
 print("Environment", os.environ)
@@ -81,6 +102,7 @@ while qr is None:
 
 
 
+'''
 contato.qr_code = qr
 try:
     session.commit()
@@ -89,8 +111,7 @@ except Exception as e:
     print("Nao foi possivel salvar o QR")
     session.rollback()
     sys.exit(1)
-
-
+'''
 
 while(driver.get_status() == 'NotLoggedIn'):
     print("Waiting for QR")
