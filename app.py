@@ -111,6 +111,7 @@ except Exception as e:
     sys.exit(1)
 '''
 qr_code_data = {
+    "id": os.environ['CONTATO_ID'],
     "qr_code": qr,
 	"timestamp": 0,
 }
