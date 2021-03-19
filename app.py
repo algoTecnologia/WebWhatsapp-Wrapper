@@ -111,7 +111,7 @@ except Exception as e:
     sys.exit(1)
 '''
 qr_code_data = {
-    "id": os.environ['CONTATO_ID'],
+    "id": os.environ['SESSION_ID'],
     "qr_code": qr,
 	"timestamp": 0,
 }
@@ -143,11 +143,11 @@ while True:
             received = str(message.content)
 
             if received.find("!ping") != -1:
-                text = "!pong " + str(contato_id) + "/" + str(contato_telefone) + " -> " + str(message.sender.id) + " / " + str(message.timestamp)
+                text = "!pong " + str(os.environ['SESSION_ID']) + "/" + str(message.sender.id) + " -> " + str(message.sender.id) + " / " + str(message.timestamp)
                 driver.send_message_to_id(message.chat_id, text)
 
             if received.find("!pong") != -1:
-                text = "!ping " + str(contato_id) + "/" + str(contato_telefone) + " -> " + str(message.sender.id) + " / " + str(message.timestamp)
+                text = "!ping " + str(os.environ['SESSION_ID']) + "/" + str(message.sender.id) + " -> " + str(message.sender.id) + " / " + str(message.timestamp)
                 driver.send_message_to_id(message.chat_id, text)
 
             #print(json.dumps(message.get_js_obj(), indent=4))
