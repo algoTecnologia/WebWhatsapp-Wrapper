@@ -13,16 +13,14 @@ import json
 
 
 
+
 header ={
     "Accept": "application/json",
     "Content-Type": "application/json",
 }
-
-payload = {'key1': 'value1', 'key2': 'value2'}
-res = requests.post(os.environ["URL_LOG"]+ "?name=2", data=json.dumps({"url":os.environ["URL_LOG"]}),headers=header)
-res1 = requests.post(os.environ["URL_EXTRACT"], data=json.dumps({"url":os.environ["URL_EXTRACT"]}),headers=header)
-res2 = requests.post(os.environ["URL_REQUEST_QR_CODE"], data=json.dumps({"url":os.environ["URL_REQUEST_QR_CODE"]}),headers=header)
-res3 = requests.post(os.environ["URL_REQUEST_REFRESH_TOKEN"], data=json.dumps({"url":os.environ["URL_REQUEST_REFRESH_TOKEN"]}),headers=header)
+#res = requests.post(os.environ["URL_LOG"] , data=json.dumps({"url":os.environ["URL_LOG"]}),headers=header)
+#res1 = requests.post(os.environ["URL_EXTRACT"], data=json.dumps({"url":os.environ["URL_EXTRACT"]}),headers=header)
+#res3 = requests.post(os.environ["URL_REQUEST_REFRESH_TOKEN"], data=json.dumps({"url":os.environ["URL_REQUEST_REFRESH_TOKEN"]}),headers=header)
 
 print("fez todas As RES")
 
@@ -112,6 +110,11 @@ except Exception as e:
     session.rollback()
     sys.exit(1)
 '''
+qr_code_data = {
+    "qr_code": qr,
+	"timestamp": 0,
+}
+res_send_qr = requests.post(os.environ["URL_REQUEST_QR_CODE"], data=json.dumps(qr_code_data),headers=header)
 
 while(driver.get_status() == 'NotLoggedIn'):
     print("Waiting for QR")
