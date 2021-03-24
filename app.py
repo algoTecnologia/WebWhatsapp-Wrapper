@@ -12,12 +12,10 @@ import json
 
 
 
-header ={
+post_header ={
     "Accept": "application/json",
     "Content-Type": "application/json",
 }
-#res = requests.post(os.environ["URL_LOG"] , data=json.dumps({"url":os.environ["URL_LOG"]}),headers=header)
-#res1 = requests.post(os.environ["URL_EXTRACT"], data=json.dumps({"url":os.environ["URL_EXTRACT"]}),headers=header)
 #res3 = requests.post(os.environ["URL_REQUEST_REFRESH_TOKEN"], data=json.dumps({"url":os.environ["URL_REQUEST_REFRESH_TOKEN"]}),headers=header)
 
 
@@ -60,11 +58,14 @@ while qr is None:
 qr_code_data = {
     "id": os.environ['SESSION_ID'],
     "qr_code": qr,
-	"timestamp": 0,
+	"timestamp": str(datetime.now()),
 }
-
 # TODO create exceptions
-res_send_qr = requests.post(os.environ["URL_REQUEST_QR_CODE"], data=json.dumps(qr_code_data),headers=header)
+try:
+    requests.post(os.environ["URL_REQUEST_QR_CODE"], data=json.dumps(qr_code_data),headers=post_header)
+except Exception as e:
+    print(e)
+    print("falha ao enviar o qr code")
 
 
 #while(driver.get_status() == 'NotLoggedIn'):
@@ -96,8 +97,22 @@ sessions = {
 
 
 '''
-sessions = {}
 
+# send log_time to backend
+log_session_data = {
+    "session_chat_id": os.environ['SESSION_ID'],
+    "start_monitor": str(datetime.now()),
+    "error": False,
+}
+
+# TODO create exceptions
+try:
+    requests.post(os.environ["URL_LOG"], data=json.dumps(log_session_data),headers=post_header)
+except Exception as e:
+    print(e)
+    print("falha ao enviar data de log")
+
+sessions = {}
 
 while True:
     time.sleep(3)
@@ -138,6 +153,20 @@ while True:
                 if sessions[contact.chat.id]["end_time"] is None and received.find("!end") != -1:
                     sessions[contact.chat.id]["end_time"] = datetime.now()
                     sessions[contact.chat.id]["block"] = True
+
+                    # send extract to backend
+                    session_data = {
+                        "session_chat_id": os.environ['SESSION_ID'],
+                        "date": str(datetime.now()),
+                        "answer_data": sessions[contact.chat.id]["messages"],
+                        "contact": contact.chat.id
+                    }
+                    # TODO create exceptions
+                    try:
+                        requests.post(os.environ["URL_EXTRACT"], data=json.dumps(session_data),headers=post_header)
+                    except Exception as e:
+                        print(e)
+                        print("falha ao enviar extração")
 
                     contact.chat.send_message("log ended")
                     # return logged session and delete data
