@@ -71,10 +71,9 @@ except Exception as e:
     print("falha ao enviar o qr code")
 
 
-#while(driver.get_status() == 'NotLoggedIn'):
-#    print("Waiting for QR")
-driver.wait_for_login()
-#    time.sleep(5)
+while(driver.get_status() == 'NotLoggedIn'):
+    print("Waiting for QR login")
+    driver.wait_for_login()
 
 print("Saving session")
 driver.save_firefox_profile(remove_old=False)
@@ -120,11 +119,11 @@ sessions = {}
 while True:
     time.sleep(3)
 
+    print(driver.get_status())
     if driver.get_status() == 'NotLoggedIn':
-        print("Not logged In")
+        print("Not logged In, smartphone disconnected")
         driver.wait_for_login()
 
-    print("tried to read")
     # for each chat with unread_messages
     for contact in driver.get_unread():
 
@@ -161,7 +160,10 @@ while True:
                     session_data = {
                         "session_chat_id": os.environ['SESSION_ID'],
                         "date": str(datetime.now()),
-                        "answer_data": sessions[contact.chat.id]["messages"],
+                        "answer_data": json.dumps({
+                            "full_message":sessions[contact.chat.id]["messages"],
+                            "concise_result": "resultado"
+                        }),
                         "contact": contact.chat.id
                     }
                     # TODO create exceptions
