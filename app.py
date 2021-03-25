@@ -77,6 +77,7 @@ while(driver.get_status() == 'NotLoggedIn'):
 
 
 # save session on volume
+# todo: verify if a profile is presents, else get qr code
 #print("Saving session")
 #driver.save_firefox_profile(remove_old=False)
 print("Bot started")
