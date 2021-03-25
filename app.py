@@ -75,8 +75,10 @@ while(driver.get_status() == 'NotLoggedIn'):
     print("Waiting for QR login")
     driver.wait_for_login()
 
-print("Saving session")
-driver.save_firefox_profile(remove_old=False)
+
+# save session on volume
+#print("Saving session")
+#driver.save_firefox_profile(remove_old=False)
 print("Bot started")
 
 
