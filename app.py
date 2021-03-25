@@ -18,6 +18,9 @@ post_header ={
 }
 #res3 = requests.post(os.environ["URL_REQUEST_REFRESH_TOKEN"], data=json.dumps({"url":os.environ["URL_REQUEST_REFRESH_TOKEN"]}),headers=header)
 
+questionnaire = os.environ['QUESTIONNAIRE_JSON']
+questionnaire = json.loads(questionnaire)
+pprint(questionnaire)
 
 db_uri = os.environ['DB_URI']
 print('BANCO DE DADOS: ' + db_uri)
@@ -118,10 +121,10 @@ while True:
     time.sleep(3)
 
     if driver.get_status() == 'NotLoggedIn':
-        print("Not legged In")
+        print("Not logged In")
         driver.wait_for_login()
 
-
+    print("tried to read")
     # for each chat with unread_messages
     for contact in driver.get_unread():
 
