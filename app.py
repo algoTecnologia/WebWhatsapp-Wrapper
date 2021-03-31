@@ -256,8 +256,7 @@ def main():
                 elif current_node["type"] == "publication":  # if publication print node text
                     text += "\n" + current_node["text"]
 
-
-                pprint(current_node)
+                #pprint(current_node)
 
                 # print edges
                 # get all edges from node
@@ -278,10 +277,10 @@ def main():
                         text += "\nSessão encerrada"
                         break
 
-                    # add node text to message
-                    text += "\n" + question["text"]
                     # if is a option
                     if question["type"] == "option":
+                        # add node text to message
+                        text += "\n" + question["text"]
                         sessions[chat.id]["send_message"] = False
                     else: # if not a option, jump to this node
                         sessions[chat.id]["question_id"] = edge["target"]
@@ -307,7 +306,7 @@ def main():
                             sessions[chat.id]["block"] = False
                             chat.send_message("log started, send a message to start the questionnaire")
                             break
-                        if sessions[chat.id]["start_time"]  and received.find("!end") != -1:
+                        if received.find("!end") != -1:
                             end_session(sessions[chat.id])
                             sessions[chat.id]["block"] = True
                             chat.send_message("log ended")
@@ -343,7 +342,14 @@ def main():
                                         # check if response is node text
                                         if node_of_edge and received.find(node_of_edge["text"]) != -1:
                                             #print("choosed: " + node_of_edge["text"])
-                                            sessions[chat.id]["question_id"] = node_of_edge["id"]
+
+                                            next_edge = next((item for item in questionnaire["edges"] if
+                                                 item["source"] == node_of_edge["id"]), None)
+
+                                            if next_edge:
+                                                sessions[chat.id]["question_id"] = next_edge["target"]
+                                            else:
+                                                sessions[chat.id]["question_id"] = node_of_edge["id"]
                                             break
                                 # should send message after comparing the response
                                 sessions[chat.id]["send_message"] = True
