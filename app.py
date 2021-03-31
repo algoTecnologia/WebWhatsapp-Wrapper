@@ -44,9 +44,10 @@ try:
 except KeyError:
     error_data = {
         "error": True,
-        "message": "Missing environment variables"
+        "message": "Missing environment variables",
+        "end_monitor": str(datetime.now())
     }
-    send_url_log()
+    send_url_log(error_data)
     print("Missing environment variables")
     sys.exit(1)
 
@@ -56,7 +57,8 @@ questionnaire = json.loads(questionnaire)
 if questionnaire is None:
     error_data = {
         "error": True,
-        "message": "Não foi possivel carregar o questionario"
+        "message": "Não foi possivel carregar o questionario",
+        "end_monitor": str(datetime.now())
     }
     send_url_log(error_data)
     sys.exit(1)
@@ -82,7 +84,7 @@ try:
 except Exception as e:
     print(e)
     print("could not start webdriver")
-    send_url_log({"error":True, "message": "Não foi possivel inicializar o chatbot"})
+    send_url_log({"error":True, "message": "Não foi possivel inicializar o chatbot", "end_monitor": str(datetime.now())})
     sys.exit(1)
 
 qr = None
@@ -162,13 +164,13 @@ def start_session(session):
 def end_session(session):
     # send extract to backend
     session_data = {
-        "send_message": True,
         "id": os.environ['SESSION_ID'],
         "date": str(datetime.now()),
-        "end_time": str(datetime.now()),
-        "messages": json.dumps(session['messages']),
-        "answers": json.dumps(session['answers']),
-        "concise_result": json.dumps(session['result']),
+        "answer_data": json.dumps({
+            "messages": session["messages"],
+            "answers": session["answers"],
+            "result": session["result"]
+        }),
         "contact": session['chat_id']
     }
 
@@ -245,13 +247,13 @@ def main():
             chat = driver.get_chat_from_id(session)
 
             # if session is open and should send node messages
-            if sessions[chat.id].get('send_message'):
+            if sessions[session].get('send_message'):
                 # logic to send node text(s)
                 text = ""
                 #print("sending message")
                 # get current_node of session
                 current_node = next(
-                    (item for item in questionnaire["nodes"] if item["id"] == sessions[chat.id]["question_id"]),
+                    (item for item in questionnaire["nodes"] if item["id"] == sessions[session]["question_id"]),
                     None)
 
                 # check if node is final and exists
@@ -260,7 +262,7 @@ def main():
                     text += current_node.get("text")
                     text += "\nSessão encerrada"
 
-                    end_session(sessions[chat.id])
+                    end_session(sessions[session])
                     chat.send_message(text)
                     continue # jump to next contact
                 elif current_node["type"] == "publication":  # if publication print node text
@@ -271,7 +273,7 @@ def main():
                 # print edges
                 # get all edges from node
                 current_edges = (item for item in questionnaire["edges"] if
-                                 item["source"] == sessions[chat.id]["question_id"])
+                                 item["source"] == sessions[session]["question_id"])
 
                 # flag to check if there is any edge returned from the generator
                 loop_block = True
@@ -283,7 +285,7 @@ def main():
 
                     # if there is no node, error, end session
                     if question is None:
-                        end_session(sessions[chat.id])
+                        end_session(sessions[session])
                         text += "\nSessão encerrada"
                         break
 
@@ -291,13 +293,13 @@ def main():
                     if question["type"] == "option":
                         # add node text to message
                         text += "\n" + question["text"]
-                        sessions[chat.id]["send_message"] = False
+                        sessions[session]["send_message"] = False
                     else: # if not a option, jump to this node
-                        sessions[chat.id]["question_id"] = edge["target"]
-                        sessions[chat.id]["send_message"] = True
+                        sessions[session]["question_id"] = edge["target"]
+                        sessions[session]["send_message"] = True
 
                 if loop_block:
-                    end_session(sessions[chat.id])
+                    end_session(sessions[session])
                     text += "\nSessão encerrada"
 
                 # send text after
@@ -312,13 +314,13 @@ def main():
 
                         ## UTILS FOR TESTING
                         # util to start/ping/end chat log
-                        if sessions[chat.id]["start_time"] is None and received.find("!start") != -1:
-                            sessions[chat.id]["block"] = False
+                        if sessions[session]["start_time"] is None and received.find("!start") != -1:
+                            sessions[session]["block"] = False
                             chat.send_message("log started, send a message to start the questionnaire")
                             break
                         if received.find("!end") != -1:
-                            end_session(sessions[chat.id])
-                            sessions[chat.id]["block"] = True
+                            end_session(sessions[session])
+                            sessions[session]["block"] = True
                             chat.send_message("log ended")
                         if received.find("!ping") != -1:
                             text = "!pong " + str(os.environ['SESSION_ID']) + "/" + str(
@@ -327,22 +329,22 @@ def main():
                         ## END UTILS FOR TESTING
 
                         # conditional used for testing:
-                        if not sessions[chat.id]["block"]:
+                        if not sessions[session]["block"]:
                             #print("receiving messages")
                             # check if the session is open
-                            if sessions[chat.id].get('open'):
+                            if sessions[session].get('open'):
                                 #print("reading")
                                 # save message
                                 new_message = {
                                     "message": received,
                                     "time": str(message.timestamp)
                                 }
-                                sessions[chat.id]["messages"].append(new_message)
+                                sessions[session]["messages"].append(new_message)
 
                                 # apply questionnaire
                                 # get all edges from current Node
                                 current_edges = (item for item in questionnaire["edges"] if
-                                                 item["source"] == sessions[chat.id]["question_id"])
+                                                 item["source"] == sessions[session]["question_id"])
                                 for edge in current_edges:
                                     # for each edge that is a question
                                     if edge["type"] == "publicationToOption" or edge["type"] == "optionToOption":
@@ -357,16 +359,16 @@ def main():
                                                  item["source"] == node_of_edge["id"]), None)
 
                                             if next_edge:
-                                                sessions[chat.id]["question_id"] = next_edge["target"]
+                                                sessions[session]["question_id"] = next_edge["target"]
                                             else:
-                                                sessions[chat.id]["question_id"] = node_of_edge["id"]
+                                                sessions[session]["question_id"] = node_of_edge["id"]
                                             break
                                 # should send message after comparing the response
-                                sessions[chat.id]["send_message"] = True
+                                sessions[session]["send_message"] = True
                             else:
                                 # if received message but session is not open, start new session
                                 #print("a new session has been started")
-                                start_session(sessions[chat.id])
+                                start_session(sessions[session])
 
 
 if __name__ == "__main__":
@@ -376,6 +378,7 @@ if __name__ == "__main__":
         print_exc()
         print(e)
         data = {
+            "end_monitor": str(datetime.now()),
             "error": True,
             "message": "Ocorreram errors durante a execução do programa"
         }
