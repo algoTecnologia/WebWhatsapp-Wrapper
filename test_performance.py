@@ -17,11 +17,12 @@ info = {
 
 url = "http://localhost:5001"
 
-for i in range(30, 100):
-    time.sleep(2)
+for i in range(0, 100):
+    time.sleep(1)
     session_id_name = "chatbot_" + str(id)
 
     try:
+        requests.delete(url=url + "/session/delete/" + str(i), headers=header)
         response = requests.post(url=url + "/session/start/" + str(i), data=json.dumps(info), headers=header)
         data = response.json()
 

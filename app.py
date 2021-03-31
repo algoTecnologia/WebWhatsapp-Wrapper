@@ -19,6 +19,9 @@ post_header ={
 def send_url_log(data):
     # TODO better exception treatment or send error_log to backend
     try:
+        if data.get("id") is None:
+            data["id"] = os.environ['SESSION_ID']
+
         requests.post(os.environ["URL_LOG"], data=json.dumps(data), headers=post_header)
     except Exception as e:
         print(e)
@@ -52,7 +55,6 @@ questionnaire = os.environ['QUESTIONNAIRE_JSON']
 questionnaire = json.loads(questionnaire)
 if questionnaire is None:
     error_data = {
-        "session_chat_id": os.environ['SESSION_ID'],
         "error": True,
         "message": "Não foi possivel carregar o questionario"
     }
@@ -72,9 +74,16 @@ if not os.path.exists(profiledir):
 
 ## API ROUTINE
 
-driver = WhatsAPIDriver(
-    profile=profiledir, client="remote", command_executor=os.environ["SELENIUM"]
-)
+try:
+    driver = WhatsAPIDriver(
+        profile=profiledir, headless=True,
+        client="remote", command_executor=os.environ["SELENIUM"]
+    )
+except Exception as e:
+    print(e)
+    print("could not start webdriver")
+    send_url_log({"error":True, "message": "Não foi possivel inicializar o chatbot"})
+    sys.exit(1)
 
 qr = None
 while qr is None:
@@ -154,7 +163,7 @@ def end_session(session):
     # send extract to backend
     session_data = {
         "send_message": True,
-        "session_chat_id": os.environ['SESSION_ID'],
+        "id": os.environ['SESSION_ID'],
         "date": str(datetime.now()),
         "end_time": str(datetime.now()),
         "messages": json.dumps(session['messages']),
@@ -228,7 +237,8 @@ def main():
             driver.wait_for_login()
 
         # for each session
-        for session in sessions:
+
+        for session in list(sessions):
             #time.sleep(3)
 
             # get session chat
