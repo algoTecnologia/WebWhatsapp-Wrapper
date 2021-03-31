@@ -6,6 +6,7 @@ from datetime import datetime
 from pprint import pprint
 from webwhatsapi import WhatsAPIDriver
 
+from traceback import print_exc
 import requests
 
 import json
@@ -237,7 +238,7 @@ def main():
             if sessions[chat.id].get('send_message'):
                 # logic to send node text(s)
                 text = ""
-                print("sending message")
+                #print("sending message")
                 # get current_node of session
                 current_node = next(
                     (item for item in questionnaire["nodes"] if item["id"] == sessions[chat.id]["question_id"]),
@@ -245,16 +246,18 @@ def main():
 
                 # check if node is final and exists
                 if current_node is None or current_node["type"] == "final":
-                    print("{{end_node}}")
-                    text = current_node.get("text")
-                    if text is None:
-                        text = "Sessão encerrada"
+                    #print("{{end_node}}")
+                    text += current_node.get("text")
+                    text += "\nSessão encerrada"
 
                     end_session(sessions[chat.id])
                     chat.send_message(text)
                     continue # jump to next contact
                 elif current_node["type"] == "publication":  # if publication print node text
                     text += "\n" + current_node["text"]
+
+
+                pprint(current_node)
 
                 # print edges
                 # get all edges from node
@@ -264,7 +267,7 @@ def main():
                 # flag to check if there is any edge returned from the generator
                 loop_block = True
                 for edge in current_edges:
-                    print("visit")
+                    #print("visit")
                     loop_block = False
                     # get target node of edge
                     question = next((item for item in questionnaire["nodes"] if item["id"] == edge["target"]), None)
@@ -272,21 +275,21 @@ def main():
                     # if there is no node, error, end session
                     if question is None:
                         end_session(sessions[chat.id])
-                        text = "Sessão encerrada"
+                        text += "\nSessão encerrada"
                         break
 
+                    # add node text to message
+                    text += "\n" + question["text"]
                     # if is a option
                     if question["type"] == "option":
-                        text += "\n" + question["text"]
                         sessions[chat.id]["send_message"] = False
-
                     else: # if not a option, jump to this node
                         sessions[chat.id]["question_id"] = edge["target"]
                         sessions[chat.id]["send_message"] = True
 
                 if loop_block:
                     end_session(sessions[chat.id])
-                    text = "Sessão encerrada"
+                    text += "\nSessão encerrada"
 
                 # send text after
                 if text != "":
@@ -302,7 +305,7 @@ def main():
                         # util to start/ping/end chat log
                         if sessions[chat.id]["start_time"] is None and received.find("!start") != -1:
                             sessions[chat.id]["block"] = False
-                            chat.send_message("log started, send a message to start questionnaire")
+                            chat.send_message("log started, send a message to start the questionnaire")
                             break
                         if sessions[chat.id]["start_time"]  and received.find("!end") != -1:
                             end_session(sessions[chat.id])
@@ -316,10 +319,10 @@ def main():
 
                         # conditional used for testing:
                         if not sessions[chat.id]["block"]:
-                            print("receiving messages")
+                            #print("receiving messages")
                             # check if the session is open
                             if sessions[chat.id].get('open'):
-                                print("reading")
+                                #print("reading")
                                 # save message
                                 new_message = {
                                     "message": received,
@@ -339,14 +342,14 @@ def main():
 
                                         # check if response is node text
                                         if node_of_edge and received.find(node_of_edge["text"]) != -1:
-                                            print("choosed: " + node_of_edge["text"])
+                                            #print("choosed: " + node_of_edge["text"])
                                             sessions[chat.id]["question_id"] = node_of_edge["id"]
                                             break
                                 # should send message after comparing the response
                                 sessions[chat.id]["send_message"] = True
                             else:
                                 # if received message but session is not open, start new session
-                                print("a new session has been started")
+                                #print("a new session has been started")
                                 start_session(sessions[chat.id])
 
 
@@ -354,6 +357,7 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as e:
+        print_exc()
         print(e)
         data = {
             "error": True,
