@@ -92,7 +92,7 @@ def end_session(session):
 
 
     error_log = {
-        "error": True,
+        "error": False,
         "message": "Conversa finalizada",
         "end_monitor": str(session["end_time"]),
         "start_monitor": str(session["start_time"]),
