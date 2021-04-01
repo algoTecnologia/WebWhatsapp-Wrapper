@@ -14,16 +14,21 @@ import json
 from app_functions import *
 
 
-
 start_monitor = datetime.now()
 end_monitor = None
 
-post_header ={
-    "Accept": "application/json",
-    "Content-Type": "application/json",
-}
 
 def end_program():
+    error_data = {
+        "error": True,
+        "message": "Missing environment variables",
+        "start_monitor": str(start_monitor),
+        "end_monitor": str(datetime.now()),
+        "log_type": Messages["SERVICE_LOG"]
+    }
+
+    send_url_log(error_data)
+
     driver.close()
     sys.exit(1)
 
@@ -36,7 +41,8 @@ except KeyError:
         "error": True,
         "message": "Missing environment variables",
         "start_monitor": str(start_monitor),
-        "end_monitor": str(end_monitor)
+        "end_monitor": str(end_monitor),
+        "log_type": Messages["ERROR_LOG"]
     }
     send_url_log(error_data)
     print("Missing environment variables")
@@ -48,6 +54,7 @@ log_session_data = {
     "end_monitor": str(end_monitor),
     "message": "A sessão foi iniciada",
     "error": False,
+    "log_type": Messages["SERVICE_LOG"]
 }
 send_url_log(data=log_session_data)
 print("Bot started")
@@ -61,7 +68,8 @@ if questionnaire is None:
         "error": True,
         "message": "Não foi possivel carregar o questionario",
         "end_monitor": str(end_monitor),
-        "start_monitor": str(start_monitor)
+        "start_monitor": str(start_monitor),
+        "log_type": Messages["ERROR_LOG"]
     }
     send_url_log(error_data)
     end_program()
@@ -92,7 +100,8 @@ except Exception as e:
         "error": True,
         "message": "Não foi possivel inicializar o chatbot",
         "end_monitor": str(end_monitor),
-        "start_monitor": str(start_monitor)
+        "start_monitor": str(start_monitor),
+        "log_type": Messages["ERROR_LOG"]
     }
     send_url_log(error_log)
     end_program()
@@ -119,6 +128,7 @@ try:
 except Exception as e:
     qr_code_data['error'] = True
     qr_code_data['message'] = "Não foi possivel enviar o QR Code"
+    qr_code_data["log_type"] =  Messages["ERROR_LOG"]
     print(e)
     send_url_log(qr_code_data)
     end_program()
@@ -155,8 +165,9 @@ class NewMessageObserver:
                         "result": "",
                         "send_message": False,
                         "open": False,
-                        "block": True
+                        "block": True,
                     }
+
 
 
 # apply function to every message received
@@ -246,16 +257,17 @@ def main():
 
                         ## UTILS FOR TESTING
                         # util to start/ping/end chat log
-                        if sessions[session]["start_time"] is None and received.find("!start") != -1:
+                        if sessions[session]["start_time"] is None and received.find("=!start") != -1:
                             sessions[session]["block"] = False
                             chat.send_message("log started, send a message to start the questionnaire")
                             break
-                        if received.find("!end") != -1:
+                        if sessions[session]["end_time"] is None and received.find("=!end") != -1:
                             end_session(sessions[session])
                             sessions[session]["block"] = True
                             chat.send_message("log ended")
-                        if received.find("!ping") != -1:
-                            text = "!pong " + str(os.environ['SESSION_ID']) + "/" + str(
+                            break
+                        if received.find("=!ping") != -1:
+                            text = "=!pong " + str(os.environ['SESSION_ID']) + "/" + str(
                                 message.sender.id) + " -> " + str(message.sender.id) + " / " + str(message.timestamp)
                             chat.send_message(text)
                         ## END UTILS FOR TESTING
@@ -315,7 +327,8 @@ if __name__ == "__main__":
             "start_monitor": str(start_monitor),
             "end_monitor": str(end_monitor),
             "error": True,
-            "message": "Ocorreram errors durante a execução do programa"
+            "message": "Ocorreram errors durante a execução do programa",
+            "log_type": Messages["ERROR_LOG"]
         }
 
         send_url_log(data)

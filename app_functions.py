@@ -11,6 +11,11 @@ import requests
 
 import json
 
+Messages = {
+    'CONTACT_LOG' : 'CONTACT_LOG',  # Logs referentes ao contanto da API com os usuários
+    'SERVICE_LOG' : 'SERVICE_LOG',  # Logs referentes ao tempo de serviço (inicio e fim do serviço)
+    'ERROR_LOG' : 'ERROR_LOG',  # Logs referentes aos erros ocorridos no serviço
+}
 
 
 post_header ={
@@ -62,10 +67,12 @@ def start_session(session):
 
 # end chatbot session and send request
 def end_session(session):
+
+    session["end_time"] = datetime.now()
     # send extract to backend
     session_data = {
         "id": os.environ['SESSION_ID'],
-        "date": str(datetime.now()),
+        "date": str(session["end_time"]),
         "answer_data": json.dumps({
             "messages": session["messages"],
             "answers": session["answers"],
@@ -82,8 +89,21 @@ def end_session(session):
         print(e)
         print("falha ao enviar extração")
 
+
+
+    error_log = {
+        "error": True,
+        "message": "Conversa finalizada",
+        "end_monitor": str(session["end_time"]),
+        "start_monitor": str(session["start_time"]),
+        "contact": session["chat_id"],
+        "log_type": Messages["CONTACT_LOG"]
+    }
+    send_url_log(error_log)
+
     # reset session
     session["start_time"] = None
+    session["end_time"] = None
     session["question_id"] = "ROOT"
     session["send_message"] = False
     session["messages"] = []
