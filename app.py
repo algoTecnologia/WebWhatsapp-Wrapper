@@ -11,60 +11,60 @@ import requests
 
 import json
 
+from app_functions import *
+
+
+
+start_monitor = datetime.now()
+end_monitor = None
+
 post_header ={
     "Accept": "application/json",
     "Content-Type": "application/json",
 }
 
-def send_url_log(data):
-    # TODO better exception treatment or send error_log to backend
-    try:
-        if data.get("id") is None:
-            data["id"] = os.environ['SESSION_ID']
+def end_program():
+    driver.close()
+    sys.exit(1)
 
-        requests.post(os.environ["URL_LOG"], data=json.dumps(data), headers=post_header)
-    except Exception as e:
-        print(e)
-        print("Falha ao enviar dados de log")
-        sys.exit(1)
-
-
-#res3 = requests.post(os.environ["URL_REQUEST_REFRESH_TOKEN"], data=json.dumps({"url":os.environ["URL_REQUEST_REFRESH_TOKEN"]}),headers=header)
-
-# use this to check if env has been sent
-print("Environment", os.environ)
+# check env variables
 try:
-    os.environ["SELENIUM"]
-    os.environ['QUESTIONNAIRE_JSON']
-    os.environ["URL_REQUEST_QR_CODE"]
-    os.environ["URL_REQUEST_REFRESH_TOKEN"]
-    os.environ["URL_LOG"]
-    os.environ["SESSION_ID"]
-    os.environ["URL_EXTRACT"]
+    check_env()
 except KeyError:
+    end_monitor = datetime.now()
     error_data = {
         "error": True,
         "message": "Missing environment variables",
-        "end_monitor": str(datetime.now())
+        "start_monitor": str(start_monitor),
+        "end_monitor": str(end_monitor)
     }
     send_url_log(error_data)
     print("Missing environment variables")
-    sys.exit(1)
+    end_program()
+
+# send log to indicate it has been created
+log_session_data = {
+    "start_monitor": str(start_monitor),
+    "end_monitor": str(end_monitor),
+    "message": "A sessão foi iniciada",
+    "error": False,
+}
+send_url_log(data=log_session_data)
+print("Bot started")
 
 # check questionnaire
 questionnaire = os.environ['QUESTIONNAIRE_JSON']
 questionnaire = json.loads(questionnaire)
 if questionnaire is None:
+    end_monitor = datetime.now()
     error_data = {
         "error": True,
         "message": "Não foi possivel carregar o questionario",
-        "end_monitor": str(datetime.now())
+        "end_monitor": str(end_monitor),
+        "start_monitor": str(start_monitor)
     }
     send_url_log(error_data)
-    sys.exit(1)
-
-pprint(questionnaire)
-
+    end_program()
 
 ##Save session on "/firefox_cache/localStorage.json".
 ##Create the directory "/firefox_cache", it's on .gitignore
@@ -74,8 +74,11 @@ profiledir = os.path.join(".", "firefox_cache")
 if not os.path.exists(profiledir):
     os.makedirs(profiledir)
 
-## API ROUTINE
 
+
+
+
+## API ROUTINE
 try:
     driver = WhatsAPIDriver(
         profile=profiledir, headless=True,
@@ -84,9 +87,17 @@ try:
 except Exception as e:
     print(e)
     print("could not start webdriver")
-    send_url_log({"error":True, "message": "Não foi possivel inicializar o chatbot", "end_monitor": str(datetime.now())})
-    sys.exit(1)
+    end_monitor = datetime.now()
+    error_log = {
+        "error": True,
+        "message": "Não foi possivel inicializar o chatbot",
+        "end_monitor": str(end_monitor),
+        "start_monitor": str(start_monitor)
+    }
+    send_url_log(error_log)
+    end_program()
 
+# QR code capture
 qr = None
 while qr is None:
     time.sleep(2)
@@ -95,114 +106,34 @@ while qr is None:
         print(qr)
     except Exception as e:
         print(e)
-
 qr_code_data = {
     "id": os.environ['SESSION_ID'],
     "qr_code": qr,
 	"timestamp": str(datetime.now()),
+    "end_monitor": str(end_monitor),
+    "start_monitor": str(start_monitor),
+    'error': False
 }
-
-# TODO create exceptions
 try:
-    requests.post(os.environ["URL_REQUEST_QR_CODE"], data=json.dumps(qr_code_data),headers=post_header)
+    send_qr_code(qr_code_data)
 except Exception as e:
+    qr_code_data['error'] = True
+    qr_code_data['message'] = "Não foi possivel enviar o QR Code"
     print(e)
-    print("Falha ao enviar o qr code")
+    send_url_log(qr_code_data)
+    end_program()
 
 while(driver.get_status() == 'NotLoggedIn'):
     print("Waiting for QR login")
     driver.wait_for_login()
-
 
 # save session on volume
 # todo: verify if a profile is presents, else get qr code
 #print("Saving session")
 #driver.save_firefox_profile(remove_old=False)
 
-
-# sessions structure
-'''
-sessions = {
-    "contact_id": {
-        # question id
-        "question_id": "ROOT",
-        # indicate start and end of log
-        "start_time": "2020-01-01 10:00:00",
-        "end_time": "2020-01-01 10:00:00",
-        # indicate if should read from this contact
-        "block": True,
-        # each contact has a unique dict of messages from current session
-        "messages": [
-            {"message": "Mensagem", "time": "2020-01-01 10:00:00"},
-            {"message": "Mensagem", "time": "2020-01-01 10:00:00"},
-        ],
-        # answers
-        "answers": [
-        
-        ]
-        # final answer
-        "result": "",
-        # flag to check if is waiting user answer or not
-        "waiting_answer": False
-    }
-}
-'''
-
+# dict where the sessions are saved
 sessions = {}
-
-def start_session(session):
-    session["start_time"] = str(datetime.now())
-    session["question_id"] = "ROOT"
-    session["send_message"] = True
-    #session["messages"] = []
-    #ession["answers"] = []
-    session["result"] = None
-    session["open"] = True
-
-
-# end chatbot session and send request
-def end_session(session):
-    # send extract to backend
-    session_data = {
-        "id": os.environ['SESSION_ID'],
-        "date": str(datetime.now()),
-        "answer_data": json.dumps({
-            "messages": session["messages"],
-            "answers": session["answers"],
-            "result": session["result"]
-        }),
-        "contact": session['chat_id']
-    }
-
-    # TODO create exceptions
-    try:
-        requests.post(os.environ["URL_EXTRACT"], data=json.dumps(session_data),
-                      headers=post_header)
-    except Exception as e:
-        print(e)
-        print("falha ao enviar extração")
-
-    # reset session
-    session["start_time"] = None
-    session["question_id"] = "ROOT"
-    session["send_message"] = False
-    session["messages"] = []
-    session["answers"] = []
-    session["result"] = None
-    session["open"] = False
-
-# send log_time to backend
-log_session_data = {
-    "session_chat_id": os.environ['SESSION_ID'],
-    "start_monitor": str(datetime.now()),
-    "error": False,
-}
-
-send_url_log(data=log_session_data)
-print("Bot started")
-
-
-
 
 class NewMessageObserver:
     def on_message_received(self, new_messages):
@@ -226,6 +157,7 @@ class NewMessageObserver:
                         "open": False,
                         "block": True
                     }
+
 
 # apply function to every message received
 driver.subscribe_new_messages(NewMessageObserver())
@@ -371,19 +303,23 @@ def main():
                                 start_session(sessions[session])
 
 
+
 if __name__ == "__main__":
     try:
         main()
     except Exception as e:
         print_exc()
         print(e)
+        end_monitor = datetime.now()
         data = {
-            "end_monitor": str(datetime.now()),
+            "start_monitor": str(start_monitor),
+            "end_monitor": str(end_monitor),
             "error": True,
             "message": "Ocorreram errors durante a execução do programa"
         }
 
         send_url_log(data)
-
         print("Ocorreram erros durante a execução do programa")
+        end_program()
+
 
