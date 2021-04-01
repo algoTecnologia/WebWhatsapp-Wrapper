@@ -210,6 +210,16 @@ def main():
                     end_session(sessions[session])
                     chat.send_message(text)
                     continue # jump to next contact
+                # TODO redirect logic
+                # if current_node["type"] == "direct":
+                #     text += current_node.get("text")
+                #     text += "\nA sua sessão será redirecionada para outro contato, aguarde um momento,"
+                #     chat.send_message(text)
+                #
+                #     redirect_message = "Sessão com o número {}, foi redirecionada para você"
+                #     driver.send_message_to_id(session, redirect_message.format(session))
+                #     end_session(sessions[session])
+                #     continue
                 elif current_node["type"] == "publication":  # if publication print node text
                     text += "\n" + current_node["text"]
 

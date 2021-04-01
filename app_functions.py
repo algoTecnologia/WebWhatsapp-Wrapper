@@ -64,6 +64,16 @@ def start_session(session):
     session["result"] = None
     session["open"] = True
 
+    log = {
+        "error": False,
+        "message": "Conversa inciada",
+        "end_monitor": str(session["end_time"]),
+        "start_monitor": str(session["start_time"]),
+        "contact": session["chat_id"],
+        "log_type": Messages["CONTACT_LOG"]
+    }
+    send_url_log(log)
+
 
 # end chatbot session and send request
 def end_session(session):
