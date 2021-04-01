@@ -21,7 +21,7 @@ end_monitor = None
 def end_program():
     error_data = {
         "error": True,
-        "message": "Missing environment variables",
+        "message": "O programa foi finalizado devido a um erro durante sua execução",
         "start_monitor": str(start_monitor),
         "end_monitor": str(datetime.now()),
         "log_type": Messages["SERVICE_LOG"]
