@@ -261,7 +261,7 @@ def main():
                         # util to start/ping/end chat log
                         if sessions[session]["start_time"] is None and received.find("=!start") != -1:
                             sessions[session]["block"] = False
-                            chat.send_message("log started, send a message to start the questionnaire")
+                            chat.send_message("log started, send a message to start")
                             break
                         if sessions[session]["end_time"] is None and received.find("=!end") != -1:
                             end_session(sessions[session])
