@@ -48,16 +48,6 @@ except KeyError:
     print("Missing environment variables")
     end_program()
 
-# send log to indicate it has been created
-log_session_data = {
-    "start_monitor": str(start_monitor),
-    "end_monitor": str(end_monitor),
-    "message": "A sessão foi iniciada",
-    "error": False,
-    "log_type": Messages["SERVICE_LOG"]
-}
-send_url_log(data=log_session_data)
-print("Bot started")
 
 # check questionnaire
 questionnaire = os.environ['QUESTIONNAIRE_JSON']
@@ -172,6 +162,18 @@ class NewMessageObserver:
 
 # apply function to every message received
 driver.subscribe_new_messages(NewMessageObserver())
+
+# send log to indicate it has been created
+log_session_data = {
+    "start_monitor": str(start_monitor),
+    "end_monitor": str(end_monitor),
+    "message": "O código QR foi lido com sucesso e a sessão foi iniciada",
+    "error": False,
+    "log_type": Messages["SERVICE_LOG"]
+}
+send_url_log(data=log_session_data)
+print("Bot started")
+
 
 def main():
 
