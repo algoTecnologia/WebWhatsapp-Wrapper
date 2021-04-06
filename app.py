@@ -178,18 +178,20 @@ print("Bot started")
 def main():
 
     while True:
-
+        time.sleep(2)
         if driver.get_status() == 'NotLoggedIn':
             print("Not logged In, smartphone disconnected")
             driver.wait_for_login()
 
         # for each session
 
+        unread_messages = driver.get_unread()
+
         for session in list(sessions):
             #time.sleep(3)
 
             # get session chat
-            chat = driver.get_chat_from_id(session)
+            #chat = driver.get_chat_from_id(session)
 
             # if session is open and should send node messages
             if sessions[session].get('send_message'):
@@ -208,7 +210,8 @@ def main():
                     text += "\nSessão encerrada"
 
                     end_session(sessions[session])
-                    chat.send_message(text)
+                    driver.send_message_to_id(session, text)
+                    #chat.send_message(text)
                     continue # jump to next contact
                 # TODO redirect logic
                 # if current_node["type"] == "direct":
@@ -268,30 +271,46 @@ def main():
 
                 # send text after
                 if text != "":
-                   chat.send_message(text)
+                    driver.send_message_to_id(session, text)
+                    # chat.send_message(text)
 
 
             else:
-                for message in chat.get_unread_messages():
+                # captura correct chat
+                chat_messages = []
+                for a in unread_messages:
+                    if a.chat.id == session:
+                        chat_messages = a.messages
+                        break
+
+                # iterate over chat messages
+                for message in chat_messages:
                     # check if there is plain text
-                    if message.content is not None:
-                        received = str(message.content)
+                    if message.type == "chat":
+                        received = str(message.safe_content)
 
                         ## UTILS FOR TESTING
                         # util to start/ping/end chat log
                         if sessions[session]["start_time"] is None and received.find("=!start") != -1:
                             sessions[session]["block"] = False
-                            chat.send_message("log started, send a message to start")
+                            text = "log started, send a message to start"
+                            driver.send_message_to_id(session, text)
+                            # chat.send_message(text)
+
                             break
                         if sessions[session]["end_time"] is None and received.find("=!end") != -1:
                             end_session(sessions[session])
                             sessions[session]["block"] = True
-                            chat.send_message("log ended")
+                            text = "log ended"
+                            driver.send_message_to_id(session, text)
+                            # chat.send_message(text)
+
                             break
                         if received.find("=!ping") != -1:
                             text = "=!pong " + str(os.environ['SESSION_ID']) + "/" + str(
                                 message.sender.id) + " -> " + str(message.sender.id) + " / " + str(message.timestamp)
-                            chat.send_message(text)
+                            driver.send_message_to_id(session, text)
+                            # chat.send_message(text)
                         ## END UTILS FOR TESTING
 
                         # conditional used for testing:
