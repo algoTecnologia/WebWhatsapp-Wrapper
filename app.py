@@ -232,6 +232,7 @@ def main():
 
                 # flag to check if there is any edge returned from the generator
                 loop_block = True
+                ordered_options = []
                 for edge in current_edges:
                     #print("visit")
                     loop_block = False
@@ -247,8 +248,9 @@ def main():
                     # if is a option
                     if question["type"] == "option":
                         # add node text to message
-                        text += "\n" + question["text"]
+#                        text +=  "\n" + str(question["order"]) + "\n" + question["text"]
                         sessions[session]["send_message"] = False
+                        ordered_options.append({"order":question["order"], "text": question["text"]})
                     else: # if not a option, jump to this node
                         sessions[session]["question_id"] = edge["target"]
                         sessions[session]["send_message"] = True
@@ -257,9 +259,17 @@ def main():
                     end_session(sessions[session])
                     text += "\nSessão encerrada"
 
+
+                # sort options
+                if len(ordered_options) > 0:
+                    ordered_options = sorted(ordered_options, key=lambda a:a["order"])
+                    for it in ordered_options:
+                        text+= "\n" + str(it["order"]) + " - " + it["text"]
+
                 # send text after
                 if text != "":
                    chat.send_message(text)
+
 
             else:
                 for message in chat.get_unread_messages():
@@ -308,7 +318,7 @@ def main():
                                             (item for item in questionnaire["nodes"] if item["id"] == edge["target"]), None)
 
                                         # check if response is node text
-                                        if node_of_edge and received.find(node_of_edge["text"]) != -1:
+                                        if node_of_edge and received.find(str(node_of_edge["order"])) != -1 or node_of_edge and received.find(node_of_edge["text"]) != -1  :
                                             #print("choosed: " + node_of_edge["text"])
 
                                             next_edge = next((item for item in questionnaire["edges"] if
