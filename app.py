@@ -17,6 +17,7 @@ from app_functions import *
 start_monitor = datetime.now()
 end_monitor = None
 
+TIMEOUT_SECONDS = 30
 
 def end_program():
     error_data = {
@@ -156,6 +157,7 @@ class NewMessageObserver:
                         "send_message": False,
                         "open": False,
                         "block": True,
+                        "timeout_counter": None
                     }
 
 
@@ -187,6 +189,7 @@ def main():
 
         unread_messages = driver.get_unread()
 
+        current_time = time.time()
         for session in list(sessions):
             #time.sleep(3)
 
@@ -276,12 +279,22 @@ def main():
 
 
             else:
-                # captura correct chat
+                # capture correct chat
                 chat_messages = []
                 for a in unread_messages:
                     if a.chat.id == session:
                         chat_messages = a.messages
                         break
+
+                # timeout check
+                if not sessions[session]["block"] and sessions[session]["open"]:
+                    # this check is outside loop to ensure it is consulted even when the user has not sent any message
+                    if sessions[session]["timeout_counter"] is None:
+                        sessions[session]["timeout_counter"] = current_time
+                    elif current_time - sessions[session]["timeout_counter"] > TIMEOUT_SECONDS:
+                        end_session(sessions[session])
+                        text = "Sessão encerrada por inatividade."
+                        driver.send_message_to_id(session, text)
 
                 # iterate over chat messages
                 for message in chat_messages:

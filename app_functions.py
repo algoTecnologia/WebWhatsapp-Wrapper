@@ -63,6 +63,7 @@ def start_session(session):
     #ession["answers"] = []
     session["result"] = None
     session["open"] = True
+    session["timeout_counter"] = None
 
     log = {
         "error": False,
@@ -120,6 +121,7 @@ def end_session(session):
     session["answers"] = []
     session["result"] = None
     session["open"] = False
+    session["timeout_counter"] = None
 
 
 def get_token():
